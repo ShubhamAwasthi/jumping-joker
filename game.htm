@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+canvas{
+	border : 1px solid red;
+	background-color : #000000;
+	//margin : 150px;
+}
+</style>
+</head>
+<body onload="startGame()">
+<script>
+var obstacles = [];
+function startGame(){
+	myGameArea.startGame();
+	redGamePiece = new component(40, 40, "stay.gif", 285, 120, "image", "gravity");
+	background = new component(	600, 400, "game-background.jpg", 0, 0, "background");
+	//obstacle = new component(10, 120, "green", 300, 120);
+	myScore = new component("30px", "Consolas", "blue", 280, 40, "text");
+	collide = new sound("collision.mp3");
+	bgSound = new sound("background-sound.mp3");
+	bgSound.play();
+}
+var myGameArea = {
+	canvas : document.createElement('canvas'),
+	startGame : function(){
+		this.canvas.width = 600;
+		this.canvas.height = 400;
+		this.context = this.canvas.getContext('2d');
+		document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+		this.interval = setInterval(updateGame, 20);
+		this.frameno = 0;
+		window.addEventListener("keydown", function(e){
+			redGamePiece.image.src = "walk.gif";
+			
+			if(e.keyCode == 38){
+				while(redGamePiece.speedY >= 0){
+					redGamePiece.speedGravity = 0;
+					redGamePiece.speedY -= 5;
+				}
+			}
+		});
+		window.addEventListener("keyup", function(e){
+			redGamePiece.image.src = "stay.gif";
+			redGamePiece.speedX = 0;
+			redGamePiece.speedY = 0;
+		});
+		/*window.addEventListener("mousemove",function(e){
+			redGamePiece.x = e.pageX - myGameArea.canvas.offsetLeft;
+			redGamePiece.y = e.pageY - myGameArea.canvas.offsetTop;
+		});*/
+	},
+	clear : function(){
+		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	},
+	stop : function(){
+		clearInterval(this.interval);
+	}
+};
+function everyInterval(n){
+	if((myGameArea.frameno / n) % 1 == 0)
+		return true;
+	return false;
+}
+
+function sound(src){
+	this.sound = document.createElement("audio");
+	this.sound.src = src;
+	this.sound.setAttribute("preload", "auto");
+	this.sound.setAttribute("controls", "none");
+	this.sound.style.display = "none";
+	document.body.appendChild(this.sound);
+	this.play = function(){
+		this.sound.play();
+	}
+	this.stop = function(){
+		this.sound.pause();
+	}
+}
+
+function component(width, height, color, x, y, type, gravity){
+	this.type = type;
+	this.width = width;
+	this.height = height;
+	this.x = x;
+	this.y = y;
+	this.speedX = 0;
+	this.speedY = 0;
+	if(gravity == "gravity"){
+		this.gravity = 0.1;
+		this.speedGravity = 0;
+	}
+	if(type == "image" || type == "background"){
+		this.image = new Image();
+			this.image.src = color;
+	}
+	this.update = function(){
+		ctx = myGameArea.context;
+		if(type == "image" || type == "background"){
+			
+			ctx.drawImage(this.image,this.x, this.y, this.width, this.height );
+			if(type == "background")
+				ctx.drawImage(this.image,this.x + this.width, this.y, this.width, this.height );
+		}
+	    else if(this.type == "text"){
+			ctx.font = this.width + " " + this.height;
+			ctx.fillStyle = color;
+			ctx.fillText(this.text, this.x, this.y);
+		}else{
+			ctx = myGameArea.context;
+			ctx.fillStyle = color;
+			ctx.fillRect(this.x, this.y, this.width, this.height);
+		}
+	};
+	this.newPos = function(){
+		if(gravity == "gravity"){
+			this.speedGravity += this.gravity;
+			this.y += this.speedY + this.speedGravity;
+		}
+		else{
+			this.y += this.speedY;
+		}
+		this.x += this.speedX;
+		
+	};
+	this.crashWith = function(other){
+		if(this.x > other.x + other.width
+		|| other.x > this.x + this.width
+		|| this.y > other.y + other.height
+		|| other.y > this.y + this.height)
+			return false;
+		return true;
+	};
+}
+function updateGame(){
+	var x, y;
+	for(i = 0;i < obstacles.length; i++){
+		if(redGamePiece.crashWith(obstacles[i])){
+			collide.play();
+			bgSound.stop();
+			myGameArea.stop();
+			return;
+		}
+	}
+	myGameArea.frameno += 1;
+	if(myGameArea.frameno == 1 || everyInterval(150)){
+		x = myGameArea.canvas.width;
+		y = myGameArea.canvas.height;
+		minH = 20;
+		maxH = 200;
+		height = Math.floor(Math.random()*(maxH - minH + 1) + minH);
+		minG = 80;
+		maxG = 200;
+		gap = Math.floor(Math.random()*(maxG - minG + 1) + minG);
+		obstacles.push(new component(10, height, "yellow", x, 0));
+		obstacles.push(new component(10, y - height - gap, "yellow", x, height + gap));
+	}
+	
+	myGameArea.clear();
+	background.speedX = -1;
+	background.newPos();
+	if(background.x == -600)
+		background.x = 0;
+	background.update();
+	for(i = 0; i < obstacles.length; i++){
+		console.log(obstacles[i]);
+		obstacles[i].x -= 1;
+		obstacles[i].update();
+	}
+	redGamePiece.newPos();
+	//obstacle.update();
+	myScore.text = "SCORE: " + myGameArea.frameno;
+	myScore.update();
+	redGamePiece.update();
+}
+function up(){
+	redGamePiece.speedY -= 1;
+}
+function down(){
+	redGamePiece.speedY += 1;
+}
+function left(){
+	redGamePiece.speedX -= 1;
+}
+function right(){
+	redGamePiece.speedX += 1;
+}
+function stop(){
+	redGamePiece.speedX = 0;
+	redGamePiece.speedY = 0;
+}
+</script>
+<!--
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" onmousedown="up()" onmouseup="stop()">Up</button><br><br>
+<button type="button" onmousedown="left()" onmouseup="stop()">Left</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<button type="button" onmousedown="right()" onmouseup="stop()">Right</button><br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button type="button" onmousedown="down()" onmouseup="stop()">Down</button>
+-->
+</body>
+</html>
