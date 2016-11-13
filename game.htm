@@ -20,7 +20,7 @@ function startGame(){
 	//obstacle = new component(10, 120, "green", 300, 120);
 	myScore = new component("30px", "Consolas", "blue", 280, 40, "text");
 	collide = new sound("collision.mp3");
-	bgSound = new sound("background-sound.mp3");
+	bgSound = new sound("background-sound.mp3", true);
 	bgSound.play();
 }
 var myGameArea = {
@@ -39,6 +39,7 @@ var myGameArea = {
 				while(redGamePiece.speedY >= 0){
 					redGamePiece.speedGravity = 0;
 					redGamePiece.speedY -= 5;
+					//redGamePiece.speedX += 1;
 				}
 			}
 		});
@@ -65,11 +66,13 @@ function everyInterval(n){
 	return false;
 }
 
-function sound(src){
+function sound(src, loop){
 	this.sound = document.createElement("audio");
 	this.sound.src = src;
 	this.sound.setAttribute("preload", "auto");
 	this.sound.setAttribute("controls", "none");
+	if(loop == true)
+		this.sound.setAttribute("loop", true);
 	this.sound.style.display = "none";
 	document.body.appendChild(this.sound);
 	this.play = function(){
@@ -136,6 +139,12 @@ function component(width, height, color, x, y, type, gravity){
 }
 function updateGame(){
 	var x, y;
+	if(redGamePiece.y > 400){
+		collide.play();
+			bgSound.stop();
+			myGameArea.stop();
+			return;
+	}
 	for(i = 0;i < obstacles.length; i++){
 		if(redGamePiece.crashWith(obstacles[i])){
 			collide.play();
@@ -151,11 +160,11 @@ function updateGame(){
 		minH = 20;
 		maxH = 200;
 		height = Math.floor(Math.random()*(maxH - minH + 1) + minH);
-		minG = 80;
+		minG = 90;
 		maxG = 200;
 		gap = Math.floor(Math.random()*(maxG - minG + 1) + minG);
-		obstacles.push(new component(10, height, "yellow", x, 0));
-		obstacles.push(new component(10, y - height - gap, "yellow", x, height + gap));
+		obstacles.push(new component(30, height, "yellow", x, 0));
+		obstacles.push(new component(30, y - height - gap, "yellow", x, height + gap));
 	}
 	
 	myGameArea.clear();
